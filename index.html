@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تعلم العربية مع زكريا</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#FFC83D">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="تعلم العربية">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@500;700;800&family=Cairo:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: one centered column. Player stage on top with big round controls, then a grid of video cards. Parent tools live in the footer behind a math gate. */
+:root{
+  --sky:#E4F2FF; --sky-2:#CFE6FA; --ink:#14304D; --muted:#55708A;
+  --sun:#FFC83D; --sun-d:#E3A400; --coral:#FF6A5C; --mint:#1FB486; --white:#FFFFFF;
+  --display:'Baloo Bhaijaan 2','Cairo',system-ui,sans-serif;
+  --body:'Cairo',system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{
+  background:var(--sky);
+  background-image:radial-gradient(var(--sky-2) 1.6px,transparent 1.6px);
+  background-size:30px 30px;
+  color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5;
+  padding-block:16px 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.app{max-width:980px;margin:0 auto;display:grid;gap:18px}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:4px solid var(--coral);outline-offset:3px}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.logo{width:52px;height:52px;border-radius:16px;background:var(--sun);display:grid;place-items:center;flex:none;box-shadow:0 4px 0 var(--sun-d)}
+.logo svg{width:30px;height:30px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(26px,5vw,38px);line-height:1.1;margin:0;overflow-wrap:anywhere}
+.stars{display:flex;align-items:center;gap:8px;background:var(--white);padding:6px 18px 6px 14px;border-radius:999px;font-family:var(--display);font-weight:800;font-size:24px;box-shadow:0 4px 0 var(--sky-2)}
+.stars svg{width:30px;height:30px;fill:var(--sun);stroke:var(--sun-d);stroke-width:1.5}
+.stars.pop svg{animation:pop .6s ease}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.6) rotate(-12deg)}100%{transform:scale(1)}}
+
+.screen{position:relative;aspect-ratio:16/9;width:100%;background:var(--ink);border:6px solid var(--white);border-radius:26px;overflow:hidden;box-shadow:0 8px 0 var(--sky-2)}
+.screen iframe,.screen #player{position:absolute;inset:0;width:100%;height:100%;border:0}
+.screen-msg,.timeup{position:absolute;inset:0;display:grid;place-content:center;gap:14px;justify-items:center;text-align:center;padding:20px;background:var(--ink);color:var(--white)}
+.screen-msg p,.timeup p{margin:0;max-width:34ch;font-size:clamp(16px,2.6vw,22px)}
+.timeup h2{font-family:var(--display);font-size:clamp(24px,4.5vw,40px);margin:0}
+
+.now{display:flex;align-items:baseline;gap:10px;min-width:0}
+.now .lbl{flex:none;background:var(--coral);color:var(--white);font-weight:700;font-size:14px;padding:2px 12px;border-radius:999px}
+.now strong{font-family:var(--display);font-size:clamp(18px,3vw,24px);font-weight:700;overflow-wrap:anywhere}
+
+.seek{width:100%;-webkit-appearance:none;appearance:none;height:16px;border-radius:999px;margin:0;
+  background:linear-gradient(to left,var(--mint) 0 var(--p,0%),var(--white) var(--p,0%) 100%);box-shadow:inset 0 0 0 2px var(--sky-2)}
+.seek::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;background:var(--sun);border:4px solid var(--white);box-shadow:0 2px 0 var(--sun-d)}
+.seek::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--sun);border:4px solid var(--white)}
+
+.controls{display:flex;align-items:center;justify-content:center;gap:clamp(10px,3vw,22px)}
+.cbtn{width:clamp(56px,13vw,72px);aspect-ratio:1;border-radius:50%;background:var(--white);color:var(--ink);display:grid;place-items:center;box-shadow:0 5px 0 var(--sky-2);transition:transform .12s}
+.cbtn svg{width:46%;height:46%;fill:currentColor}
+.cbtn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--sky-2)}
+.cbtn.main{width:clamp(80px,20vw,104px);background:var(--sun);box-shadow:0 6px 0 var(--sun-d)}
+.cbtn.main:active{box-shadow:0 2px 0 var(--sun-d)}
+
+h2.sec{font-family:var(--display);font-size:24px;margin:6px 0 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,170px),1fr));gap:14px}
+.card{display:grid;gap:8px;text-align:start;background:var(--white);border-radius:20px;padding:8px 8px 12px;box-shadow:0 5px 0 var(--sky-2);position:relative;min-width:0;transition:transform .12s}
+.card:active{transform:translateY(3px)}
+.card.on{outline:5px solid var(--coral);outline-offset:-1px}
+.thumb{position:relative;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:var(--sky-2)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.num{position:absolute;inset-block-start:6px;inset-inline-start:6px;background:var(--ink);color:var(--white);font-family:var(--display);font-weight:700;font-size:14px;min-width:26px;height:26px;border-radius:13px;display:grid;place-items:center;padding:0 6px}
+.done{position:absolute;inset-block-start:6px;inset-inline-end:6px;width:28px;height:28px;border-radius:50%;background:var(--mint);display:none;place-items:center}
+.card.seen .done{display:grid}
+.done svg{width:16px;height:16px;stroke:var(--white);stroke-width:3.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.ct{font-weight:700;font-size:15px;line-height:1.35;padding:0 6px;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.loading{color:var(--muted);padding:8px 2px}
+
+footer{display:flex;justify-content:center;padding-top:10px}
+.parent{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-weight:700;font-size:15px;padding:8px 16px;border-radius:999px}
+.parent:hover{background:var(--white)}
+.parent svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:18px;padding:12px 26px;border-radius:999px;background:var(--sun);color:var(--ink);box-shadow:0 4px 0 var(--sun-d)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--sun-d)}
+.btn.ghost{background:var(--sky);box-shadow:0 4px 0 var(--sky-2)}
+.btn.danger{background:var(--coral);color:var(--white);box-shadow:0 4px 0 #D84E42}
+
+.modal{position:fixed;inset:0;background:rgba(20,48,77,.6);display:grid;place-items:center;padding:16px;z-index:20;overflow-y:auto}
+.sheet{background:var(--white);border-radius:26px;padding:24px;width:min(100%,480px);display:grid;gap:14px;max-height:100%;overflow-y:auto}
+.sheet h2{font-family:var(--display);margin:0;font-size:26px;line-height:1.2}
+.sheet p{margin:0;color:var(--muted);font-size:15px}
+.field{display:grid;gap:6px;font-weight:700;font-size:15px}
+.field input,.field select{font:inherit;font-weight:500;color:var(--ink);background:var(--sky);border:2px solid var(--sky-2);border-radius:14px;padding:11px 14px;width:100%;min-width:0}
+.field input[dir=ltr]{text-align:left}
+.err{color:#C8352A;font-weight:700;font-size:15px;min-height:1.4em}
+.row{display:flex;flex-wrap:wrap;gap:10px}
+.q{font-family:var(--display);font-size:40px;text-align:center;font-weight:800}
+
+.toast{position:fixed;inset-inline:0;bottom:calc(24px + env(safe-area-inset-bottom,0px));margin:0 auto;width:max-content;max-width:calc(100% - 32px);background:var(--ink);color:var(--white);font-weight:700;padding:12px 22px;border-radius:999px;z-index:30;box-shadow:0 6px 20px rgba(20,48,77,.35)}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#14304D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5C6.5 4 9.5 4 12 6c2.5-2 5.5-2 8-.5V19c-2.5-1.5-5.5-1.5-8 .5-2.5-2-5.5-2-8-.5z"/><path d="M12 6v13.5"/></svg>
+      </span>
+      <h1 id="appTitle">تعلم العربية مع زكريا</h1>
+    </div>
+    <div class="stars" id="stars" aria-live="polite">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.6 6.2 20.7l1.1-6.5L2.6 9.6l6.5-.9z"/></svg>
+      <span id="starCount">0</span>
+      <span class="sr" style="position:absolute;left:-9999px">نجوم</span>
+    </div>
+  </header>
+
+  <main class="app" style="gap:18px">
+    <div class="screen" id="screen">
+      <div id="player"></div>
+      <div class="screen-msg" id="screenMsg">
+        <p id="screenMsgText">أضف قائمة تشغيل من إعدادات الأهل لنبدأ التعلم.</p>
+      </div>
+      <div class="timeup" id="timeUp" hidden>
+        <h2>انتهى وقت اليوم</h2>
+        <p>أحسنت! جمعت نجوما كثيرة. نكمل غدا بإذن الله.</p>
+        <button class="btn" type="button" id="timeUpParent">للأهل</button>
+      </div>
+    </div>
+
+    <div class="now"><span class="lbl">يُعرض الآن</span><strong id="nowTitle">—</strong></div>
+    <input class="seek" id="seek" type="range" min="0" max="1000" value="0" aria-label="شريط تقدم الفيديو">
+
+    <div class="controls">
+      <button class="cbtn" id="btnPrev" type="button" aria-label="الفيديو السابق"><svg viewBox="0 0 24 24"><path d="M6 5v14l11-7z"/><path d="M18 5h2v14h-2z"/></svg></button>
+      <button class="cbtn main" id="btnPlay" type="button" aria-label="تشغيل"><svg viewBox="0 0 24 24" id="icoPlay"><path d="M8 5v14l11-7z"/></svg><svg viewBox="0 0 24 24" id="icoPause" hidden><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg></button>
+      <button class="cbtn" id="btnNext" type="button" aria-label="الفيديو التالي"><svg viewBox="0 0 24 24"><path d="M18 5v14L7 12z"/><path d="M4 5h2v14H4z"/></svg></button>
+      <button class="cbtn" id="btnAgain" type="button" aria-label="أعد الفيديو من البداية"><svg viewBox="0 0 24 24"><path d="M12 5V2L8 6l4 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg></button>
+    </div>
+
+    <h2 class="sec">اختر فيديو</h2>
+    <div class="grid" id="grid"><div class="loading" id="gridHint">ستظهر الفيديوهات هنا بعد إضافة القائمة.</div></div>
+  </main>
+
+  <footer>
+    <button class="parent" id="btnParent" type="button">
+      <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+      للأهل
+    </button>
+  </footer>
+</div>
+
+<!-- Parent gate -->
+<div class="modal" id="gate" hidden role="dialog" aria-modal="true" aria-labelledby="gateT">
+  <form class="sheet" id="gateForm">
+    <h2 id="gateT">سؤال للكبار فقط</h2>
+    <p>أجب عن السؤال لفتح إعدادات الأهل.</p>
+    <div class="q" id="gateQ" dir="ltr">7 × 8</div>
+    <label class="field">الجواب
+      <input id="gateA" type="text" inputmode="numeric" autocomplete="off" dir="ltr">
+    </label>
+    <div class="err" id="gateErr" role="alert"></div>
+    <div class="row"><button class="btn" type="submit">فتح</button><button class="btn ghost" type="button" id="gateCancel">إلغاء</button></div>
+  </form>
+</div>
+
+<!-- Settings -->
+<div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setT">
+  <form class="sheet" id="setForm">
+    <h2 id="setT">إعدادات الأهل</h2>
+    <p>ألصق رابط قائمة تشغيل من يوتيوب. تعمل القوائم العامة وغير المدرجة، ولا تعمل الخاصة.</p>
+    <label class="field">رابط قائمة التشغيل
+      <input id="plLink" type="text" dir="ltr" placeholder="https://www.youtube.com/playlist?list=PL..." autocomplete="off">
+    </label>
+    <label class="field">اسم التطبيق
+      <input id="appName" type="text" maxlength="30" autocomplete="off">
+    </label>
+    <label class="field">حد المشاهدة اليومي
+      <select id="limitSel">
+        <option value="0">بدون حد</option>
+        <option value="15">15 دقيقة</option>
+        <option value="30">30 دقيقة</option>
+        <option value="45">45 دقيقة</option>
+        <option value="60">60 دقيقة</option>
+      </select>
+    </label>
+    <div class="err" id="setErr" role="alert"></div>
+    <div class="row">
+      <button class="btn" type="submit">حفظ</button>
+      <button class="btn ghost" type="button" id="setCancel">إغلاق</button>
+      <button class="btn danger" type="button" id="resetStars">تصفير النجوم</button>
+    </div>
+  </form>
+</div>
+
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+(function(){
+'use strict';
+var KEY='rukn-taallum-v1';
+var $=function(id){return document.getElementById(id);};
+var defaults={playlistId:'PLEaGEZnOHpUPBcDnCCXkmgsgRDICnhYwT',appName:'تعلم العربية مع زكريا',limitMin:0,watched:[],usage:{day:'',sec:0}};
+
+function load(){
+  try{var raw=localStorage.getItem(KEY);if(raw){return Object.assign({},defaults,JSON.parse(raw));}}catch(e){}
+  return Object.assign({},defaults);
+}
+var state=load();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+function today(){var d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
+function ensureDay(){if(!state.usage||state.usage.day!==today()){state.usage={day:today(),sec:0};}}
+function timeIsUp(){ensureDay();return state.limitMin>0&&state.usage.sec>=state.limitMin*60;}
+
+/* ---------- helpers ---------- */
+function parsePlaylistId(s){
+  s=(s||'').trim();if(!s)return null;
+  var cand=/^[a-z]+:\/\//i.test(s)?s:'https://'+s;
+  try{var l=new URL(cand).searchParams.get('list');if(l&&/^[A-Za-z0-9_-]{10,}$/.test(l))return l;}catch(e){}
+  if(/^(PL|UU|FL|OL)[A-Za-z0-9_-]{10,}$/.test(s))return s;
+  return null;
+}
+var toastT=null;
+function toast(msg){var t=$('toast');t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){t.hidden=true;},2600);}
+function showMsg(text){$('screenMsgText').textContent=text;$('screenMsg').hidden=false;}
+function hideMsg(){$('screenMsg').hidden=true;}
+
+/* ---------- player ---------- */
+var player=null,apiReady=false,ids=[],pollT=null,seeking=false,titles={};
+window.onYouTubeIframeAPIReady=function(){apiReady=true;boot();};
+(function loadApi(){
+  var s=document.createElement('script');
+  s.src='https://www.youtube.com/iframe_api';
+  s.onerror=function(){showMsg('تعذر الاتصال بيوتيوب. تأكد من الإنترنت ثم أعد فتح الصفحة.');};
+  document.head.appendChild(s);
+})();
+
+function boot(){
+  if(!apiReady||!state.playlistId||player)return;
+  hideMsg();
+  player=new YT.Player('player',{
+    width:'100%',height:'100%',
+    playerVars:{listType:'playlist',list:state.playlistId,controls:0,rel:0,modestbranding:1,playsinline:1,iv_load_policy:3,disablekb:1,fs:0,hl:'ar'},
+    events:{onReady:function(){pollList();},onStateChange:onState,onError:onError}
+  });
+}
+function cueNew(){
+  ids=[];$('grid').textContent='';
+  var h=document.createElement('div');h.className='loading';h.textContent='جارٍ تحميل الفيديوهات...';$('grid').appendChild(h);
+  $('nowTitle').textContent='—';
+  if(player){hideMsg();player.cuePlaylist({listType:'playlist',list:state.playlistId,index:0});pollList();}
+  else{boot();}
+}
+function pollList(){
+  clearInterval(pollT);var tries=0;
+  pollT=setInterval(function(){
+    tries++;
+    var list=null;
+    try{list=player&&player.getPlaylist&&player.getPlaylist();}catch(e){}
+    if(list&&list.length){clearInterval(pollT);renderList(list);refreshNow();}
+    else if(tries>40){clearInterval(pollT);$('grid').textContent='';var h=document.createElement('div');h.className='loading';h.textContent='لم تظهر الفيديوهات. تأكد أن القائمة عامة أو غير مدرجة.';$('grid').appendChild(h);}
+  },500);
+}
+var NS='http://www.w3.org/2000/svg';
+function checkIcon(){
+  var s=document.createElementNS(NS,'svg');s.setAttribute('viewBox','0 0 24 24');
+  var p=document.createElementNS(NS,'path');p.setAttribute('d','M5 12.5l4.5 4.5L19 7.5');s.appendChild(p);return s;
+}
+function renderList(list){
+  ids=list.slice();
+  var grid=$('grid');grid.textContent='';
+  list.forEach(function(id,i){
+    var b=document.createElement('button');b.type='button';b.className='card';b.dataset.id=id;b.dataset.i=String(i);
+    if(state.watched.indexOf(id)>-1)b.classList.add('seen');
+    var th=document.createElement('span');th.className='thumb';
+    var img=document.createElement('img');img.alt='';img.loading='lazy';img.src='https://i.ytimg.com/vi/'+id+'/mqdefault.jpg';
+    var num=document.createElement('span');num.className='num';num.textContent=String(i+1);
+    var dn=document.createElement('span');dn.className='done';dn.appendChild(checkIcon());
+    th.appendChild(img);th.appendChild(num);th.appendChild(dn);
+    var ct=document.createElement('span');ct.className='ct';ct.textContent=titles[id]||('فيديو '+(i+1));
+    b.appendChild(th);b.appendChild(ct);
+    b.addEventListener('click',function(){playAt(i);});
+    grid.appendChild(b);
+  });
+  markCurrent();
+  fetchTitles(list);
+}
+function fetchTitles(list){
+  var i=0;
+  function next(){
+    if(i>=list.length)return;
+    var batch=list.slice(i,i+5);i+=5;
+    Promise.all(batch.map(function(id){
+      if(titles[id])return null;
+      return fetch('https://www.youtube.com/oembed?format=json&url='+encodeURIComponent('https://www.youtube.com/watch?v='+id))
+        .then(function(r){return r.ok?r.json():null;})
+        .then(function(j){
+          if(!j||!j.title)return;
+          titles[id]=j.title;
+          var els=document.querySelectorAll('.card[data-id="'+id+'"] .ct');
+          for(var k=0;k<els.length;k++)els[k].textContent=j.title;
+        }).catch(function(){});
+    })).then(next);
+  }
+  next();
+}
+function curIndex(){try{return player.getPlaylistIndex();}catch(e){return -1;}}
+function markCurrent(){
+  var cur=curIndex();
+  var cards=document.querySelectorAll('.card');
+  for(var k=0;k<cards.length;k++){cards[k].classList.toggle('on',Number(cards[k].dataset.i)===cur);}
+}
+function refreshNow(){
+  if(!player)return;
+  try{
+    var d=player.getVideoData();
+    var t=(d&&d.title)||'';
+    if(!t){var id=ids[curIndex()];t=titles[id]||'';}
+    if(t)$('nowTitle').textContent=t;
+  }catch(e){}
+  markCurrent();
+}
+function setPlayIcon(playing){
+  $('icoPlay').hidden=playing;$('icoPause').hidden=!playing;
+  $('btnPlay').setAttribute('aria-label',playing?'إيقاف مؤقت':'تشغيل');
+}
+function onState(e){
+  var s=e.data;
+  setPlayIcon(s===1);
+  if(s===1){
+    if(timeIsUp()){player.pauseVideo();showTimeUp();return;}
+    refreshNow();
+  }
+  if(s===0){completed();}
+  if(s===5||s===-1){refreshNow();}
+}
+function completed(){
+  var id=ids[curIndex()];
+  if(!id){try{id=player.getVideoData().video_id;}catch(e){}}
+  if(!id||state.watched.indexOf(id)>-1)return;
+  state.watched.push(id);save();updateStars(true);
+  var cards=document.querySelectorAll('.card[data-id="'+id+'"]');
+  for(var k=0;k<cards.length;k++)cards[k].classList.add('seen');
+  toast('أحسنت! حصلت على نجمة');
+}
+function updateStars(pop){
+  $('starCount').textContent=String(state.watched.length);
+  if(pop){var s=$('stars');s.classList.remove('pop');void s.offsetWidth;s.classList.add('pop');}
+}
+function onError(e){
+  var map={
+    2:'رابط القائمة غير صحيح. اطلب من الأهل تعديله.',
+    5:'حدثت مشكلة في تشغيل الفيديو. جرّب فيديو آخر.',
+    100:'هذا الفيديو غير موجود أو أصبح خاصا.',
+    101:'صاحب هذا الفيديو لا يسمح بعرضه هنا. جرّب فيديو آخر.',
+    150:'صاحب هذا الفيديو لا يسمح بعرضه هنا. جرّب فيديو آخر.',
+    153:'يجب فتح التطبيق من موقع منشور على الإنترنت، وليس بالضغط المزدوج على الملف.'
+  };
+  var msg=map[e.data]||'تعذر تشغيل هذا الفيديو.';
+  if(e.data===153||e.data===2){showMsg(msg);}
+  else{toast(msg);if(ids.length>1){setTimeout(function(){try{player.nextVideo();}catch(x){}},1200);}}
+}
+
+/* ---------- controls ---------- */
+function guardTime(){if(timeIsUp()){showTimeUp();return true;}return false;}
+function showTimeUp(){$('timeUp').hidden=false;}
+function playAt(i){
+  if(!player||guardTime())return;
+  hideMsg();player.playVideoAt(i);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+$('btnPlay').addEventListener('click',function(){
+  if(!player)return;
+  if(guardTime())return;
+  var s=player.getPlayerState();
+  if(s===1){player.pauseVideo();}else{player.playVideo();}
+});
+$('btnPrev').addEventListener('click',function(){if(player&&!guardTime())player.previousVideo();});
+$('btnNext').addEventListener('click',function(){if(player&&!guardTime())player.nextVideo();});
+$('btnAgain').addEventListener('click',function(){if(player&&!guardTime()){player.seekTo(0,true);player.playVideo();}});
+
+var seekEl=$('seek');
+function paintSeek(){seekEl.style.setProperty('--p',(seekEl.value/10)+'%');}
+seekEl.addEventListener('pointerdown',function(){seeking=true;});
+seekEl.addEventListener('input',function(){
+  paintSeek();
+  if(!player)return;
+  try{var d=player.getDuration();if(d>0)player.seekTo(d*seekEl.value/1000,true);}catch(e){}
+});
+seekEl.addEventListener('pointerup',function(){seeking=false;});
+seekEl.addEventListener('change',function(){seeking=false;});
+setInterval(function(){
+  if(!player||seeking||!player.getDuration)return;
+  try{var d=player.getDuration();if(d>0){seekEl.value=String(Math.round(player.getCurrentTime()/d*1000));paintSeek();}}catch(e){}
+},400);
+
+/* daily watch-time counter */
+setInterval(function(){
+  if(!player||!player.getPlayerState)return;
+  var s;try{s=player.getPlayerState();}catch(e){return;}
+  if(s!==1)return;
+  ensureDay();state.usage.sec++;
+  if(state.usage.sec%10===0)save();
+  if(timeIsUp()){player.pauseVideo();showTimeUp();save();}
+},1000);
+
+/* ---------- parent gate & settings ---------- */
+var gateCb=null,gateAns=0;
+function openModal(el){el.hidden=false;}
+function closeModal(el){el.hidden=true;}
+function askParent(cb){
+  var a=7+Math.floor(Math.random()*3),b=6+Math.floor(Math.random()*4);
+  gateAns=a*b;gateCb=cb;
+  $('gateQ').textContent=a+' × '+b;
+  $('gateA').value='';$('gateErr').textContent='';
+  openModal($('gate'));$('gateA').focus();
+}
+$('gateForm').addEventListener('submit',function(e){
+  e.preventDefault();
+  if(parseInt($('gateA').value,10)===gateAns){closeModal($('gate'));var cb=gateCb;gateCb=null;if(cb)cb();}
+  else{$('gateErr').textContent='الجواب غير صحيح. حاول مرة أخرى.';var f=$('gateForm');f.classList.remove('shake');void f.offsetWidth;f.classList.add('shake');$('gateA').select();}
+});
+$('gateCancel').addEventListener('click',function(){closeModal($('gate'));gateCb=null;});
+$('btnParent').addEventListener('click',function(){askParent(function(){openSettings(false);});});
+$('timeUpParent').addEventListener('click',function(){askParent(function(){openSettings(false);});});
+
+var firstRun=false,resetArmed=false;
+function openSettings(first){
+  firstRun=!!first;
+  $('plLink').value=state.playlistId?'https://www.youtube.com/playlist?list='+state.playlistId:'';
+  $('appName').value=state.appName;
+  $('limitSel').value=String(state.limitMin);
+  $('setErr').textContent='';
+  resetArmed=false;$('resetStars').textContent='تصفير النجوم';
+  $('setCancel').hidden=first&&!state.playlistId;
+  openModal($('settings'));$('plLink').focus();
+}
+$('setCancel').addEventListener('click',function(){closeModal($('settings'));});
+$('setForm').addEventListener('submit',function(e){
+  e.preventDefault();
+  var id=parsePlaylistId($('plLink').value);
+  if(!id){$('setErr').textContent='الرابط غير صحيح. يجب أن يحتوي على list= مثل https://www.youtube.com/playlist?list=PL...';return;}
+  var changed=id!==state.playlistId;
+  state.appName=($('appName').value.trim()||defaults.appName);
+  state.limitMin=Number($('limitSel').value)||0;
+  if(changed){state.playlistId=id;state.watched=[];}
+  save();applyTexts();updateStars(false);
+  if(!timeIsUp())$('timeUp').hidden=true;else showTimeUp();
+  closeModal($('settings'));
+  if(changed)cueNew();
+  toast('تم الحفظ');
+});
+$('resetStars').addEventListener('click',function(){
+  if(!resetArmed){resetArmed=true;$('resetStars').textContent='اضغط مرة أخرى للتأكيد';return;}
+  state.watched=[];save();updateStars(false);
+  var cards=document.querySelectorAll('.card.seen');for(var k=0;k<cards.length;k++)cards[k].classList.remove('seen');
+  resetArmed=false;$('resetStars').textContent='تصفير النجوم';toast('تم تصفير النجوم');
+});
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Escape')return;
+  if(!$('gate').hidden){closeModal($('gate'));gateCb=null;}
+  else if(!$('settings').hidden&&!(firstRun&&!state.playlistId)){closeModal($('settings'));}
+});
+
+function applyTexts(){$('appTitle').textContent=state.appName;document.title=state.appName;}
+
+/* ---------- installable app ---------- */
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
+  window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});
+}
+
+/* ---------- start ---------- */
+applyTexts();updateStars(false);ensureDay();paintSeek();
+if(timeIsUp())showTimeUp();
+if(state.playlistId){
+  var h=$('gridHint');if(h)h.textContent='جارٍ تحميل الفيديوهات...';
+  boot();
+}else{
+  openSettings(true);
+}
+})();
+</script>
+</body>
+</html>
